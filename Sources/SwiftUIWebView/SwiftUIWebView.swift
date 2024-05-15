@@ -53,14 +53,17 @@ public struct WebViewState: Equatable {
     public internal(set) var error: Error?
     public internal(set) var canGoBack: Bool
     public internal(set) var canGoForward: Bool
-    
+    public internal(set) var progress: Double
+
     public static let empty = WebViewState(isLoading: false,
                                            pageURL: nil,
                                            pageTitle: nil,
                                            pageHTML: nil,
                                            error: nil,
                                            canGoBack: false,
-                                           canGoForward: false)
+                                           canGoForward: false,
+                                           progress: 0.1
+    )
     
     public static func == (lhs: WebViewState, rhs: WebViewState) -> Bool {
         lhs.isLoading == rhs.isLoading
@@ -70,6 +73,7 @@ public struct WebViewState: Equatable {
             && lhs.error?.localizedDescription == rhs.error?.localizedDescription
             && lhs.canGoBack == rhs.canGoBack
             && lhs.canGoForward == rhs.canGoForward
+            && lhs.progress == rhs.progress
     }
 }
 
@@ -107,7 +111,9 @@ extension WebViewCoordinator: WKNavigationDelegate {
       setLoading(false,
                  canGoBack: webView.canGoBack,
                  canGoForward: webView.canGoForward)
-        
+        var newState = self.webView.state
+        newState.progress = 1
+        self.webView.state = newState
         webView.evaluateJavaScript("document.title") { (response, error) in
             if let title = response as? String {
                 var newState = self.webView.state
@@ -145,6 +151,9 @@ extension WebViewCoordinator: WKNavigationDelegate {
     
     public func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
         setLoading(true)
+        var newState = self.webView.state
+        newState.progress = webView.estimatedProgress
+        self.webView.state = newState
     }
     
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
